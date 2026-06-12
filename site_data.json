@@ -1,0 +1,200 @@
+{
+  "layers": [
+    {
+      "id": "commander",
+      "name": "指挥官层",
+      "color": "#6c7cff",
+      "desc": "我（Hermes）— 拆解任务、选模型、派活、审核。核心决策中心。",
+      "tag": "大脑",
+      "port": "CLI/WebUI"
+    },
+    {
+      "id": "exec",
+      "name": "执行层",
+      "color": "#40d080",
+      "desc": "Agent 员工 bpd（跨境电商）/ freelance（自由职业）。delegate_task 轻任务 / terminal+hermes 重任务。",
+      "tag": "员工",
+      "port": "delegate_task"
+    },
+    {
+      "id": "model",
+      "name": "模型路由层",
+      "color": "#ff8040",
+      "desc": "按任务类型分配最优模型。轻活走 delegate_task（快/省），重活/代码/分析走 terminal + 更强模型。",
+      "tag": "路由",
+      "port": "模型选择"
+    },
+    {
+      "id": "dispatch",
+      "name": "调度层",
+      "color": "#ff5c8a",
+      "desc": "Framework Service :18888 + Pipeline。统一调度，权限/风控/任务状态管理。",
+      "tag": "调度",
+      "port": ":18888"
+    },
+    {
+      "id": "knowledge",
+      "name": "知识层",
+      "color": "#b088ff",
+      "desc": "Qdrant 向量知识库 :6333。BGE 模型嵌入，语义搜索历史经验。8028维向量，AutoId + score。",
+      "tag": "记忆",
+      "port": ":6333"
+    },
+    {
+      "id": "process",
+      "name": "进程层",
+      "color": "#40b8d0",
+      "desc": "PM2 管理 7 个服务。Qdrant/OpenClaw/Framework/WebUI/CDP/n8n/Phoenix。",
+      "tag": "引擎",
+      "port": "PM2"
+    },
+    {
+      "id": "observability",
+      "name": "可观测层",
+      "color": "#ffd040",
+      "desc": "Langfuse LLM token 追踪。Hermes .env 已配 key，SDK 待装。",
+      "tag": "监视",
+      "port": "Langfuse"
+    },
+    {
+      "id": "workflow",
+      "name": "工作流层",
+      "color": "#ff60c0",
+      "desc": "n8n v2.22.6 可视化编排。知识入库通知 + 任务失败告警 workflow。",
+      "tag": "自动化",
+      "port": ":5678"
+    }
+  ],
+  "steps": [
+    {
+      "id": 1,
+      "icon": "🧠",
+      "title": "指令接收",
+      "desc": "用户通过 CLI / WebUI :8648 / 飞书下达自然语言指令。Hermes 解析意图、抽取参数。",
+      "owner": "Hermes",
+      "color": "#6c7cff"
+    },
+    {
+      "id": 2,
+      "icon": "🔍",
+      "title": "任务分析",
+      "desc": "分析任务复杂度、领域归属。决定模型选择策略：delegate_task（轻量）vs terminal+更强模型（重型）。",
+      "owner": "Hermes",
+      "color": "#6c7cff"
+    },
+    {
+      "id": 3,
+      "icon": "🔑",
+      "title": "权限校验",
+      "desc": "P0-P3 四级权限。P3 超管可执行所有，无权限直接 403。8 维风险矩阵评估。",
+      "owner": "Framework",
+      "color": "#ff5c8a"
+    },
+    {
+      "id": 4,
+      "icon": "📚",
+      "title": "知识检索",
+      "desc": "从 Qdrant 向量库语义检索历史经验。BGE 模型将查询转为向量，搜索 Top N 相关记录。",
+      "owner": "Qdrant",
+      "color": "#b088ff"
+    },
+    {
+      "id": 5,
+      "icon": "🔄",
+      "title": "Agent 派发",
+      "desc": "根据操作类型自动选择 Agent（bpd/freelance）。读 memory.md 注入 context，派发执行。",
+      "owner": "Framework",
+      "color": "#ff5c8a"
+    },
+    {
+      "id": 6,
+      "icon": "⚙️",
+      "title": "CDP 执行",
+      "desc": "Chrome DevTools Protocol WebSocket 控制浏览器：导航、填表、提取、提交。无 Playwright 中间层。",
+      "owner": "OpenClaw",
+      "color": "#40d080"
+    },
+    {
+      "id": 7,
+      "icon": "🔍",
+      "title": "审核评分",
+      "desc": "Hermes 审核结果并打分 (0-100)。通过则存储，失败则重试或回滚。",
+      "owner": "Hermes",
+      "color": "#6c7cff"
+    },
+    {
+      "id": 8,
+      "icon": "💾",
+      "title": "知识沉淀",
+      "desc": "执行经验和结果写入 Qdrant。含操作上下文、执行结果和评分。持续学习闭环。",
+      "owner": "Qdrant",
+      "color": "#b088ff"
+    },
+    {
+      "id": 9,
+      "icon": "✅",
+      "title": "返回结果",
+      "desc": "所有步骤完成，结果返回用户。更新仪表盘统计和操作日志。一次 Agent 任务完整生命周期结束。",
+      "owner": "Hermes",
+      "color": "#6c7cff"
+    }
+  ],
+  "services": [
+    {
+      "name": "Framework Service",
+      "port": ":18888",
+      "desc": "核心管线调度，16个端点。健康检查/执行/知识/任务/日志/CDP/Admin",
+      "status": "UP",
+      "mem": "4.7MB"
+    },
+    {
+      "name": "Qdrant",
+      "port": ":6333",
+      "desc": "向量知识库，BGE嵌入。8028维向量，AutoId + score + hit_count",
+      "status": "UP",
+      "mem": "67MB"
+    },
+    {
+      "name": "OpenClaw Gateway",
+      "port": ":18789",
+      "desc": "CDP 浏览器驱动。Hermes 依赖的浏览器自动化网关",
+      "status": "UP",
+      "mem": "340MB"
+    },
+    {
+      "name": "CDP Chrome",
+      "port": ":9333",
+      "desc": "浏览器自动化实例。WebSocket 控制：导航/填表/提取/提交",
+      "status": "UP",
+      "mem": "150MB"
+    },
+    {
+      "name": "Hermes WebUI",
+      "port": ":8648",
+      "desc": "Hermes Web 界面。用户与 Agent 系统交互的 GUI 入口",
+      "status": "UP",
+      "mem": "100MB"
+    },
+    {
+      "name": "n8n",
+      "port": ":5678",
+      "desc": "工作流引擎。知识入库通知 + 任务失败告警（1个待激活）",
+      "status": "UP",
+      "mem": "145MB"
+    },
+    {
+      "name": "Phoenix Watcher",
+      "port": "PM2",
+      "desc": "电路断路器+冷启动保护。PM2 管不到的进程守护",
+      "status": "UP",
+      "mem": "4.6MB"
+    },
+    {
+      "name": "Hermes Gateway",
+      "port": "PM2",
+      "desc": "Hermes API 网关。CLI 与 Agent 系统的桥梁",
+      "status": "UP",
+      "mem": "4.9MB"
+    }
+  ]
+}

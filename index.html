@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Agent OS - 超级个体架构</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+:root{--bg:#06060e;--bg2:#090916;--card:#0c0c1a;--ch:#101028;--bd:#181836;--bl:#282858;--tx:#eaeaff;--tm:#6868a0;--td:#484870;--ac:#6c7cff;--ac2:#8c9cff;--gr:#40d080;--r:12px;--ff:"Inter","Noto Sans SC",sans-serif;--fm:"JetBrains Mono",monospace}
+body{font-family:var(--ff);background:var(--bg);color:var(--tx);overflow-x:hidden;line-height:1.7;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bl);border-radius:3px}
+::selection{background:rgba(108,124,255,0.25)}
+#bg3dCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;display:block;pointer-events:none}
+.pageContainer{position:relative;z-index:1}
+#hero{min-height:90vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 24px;position:relative;overflow:hidden}
+#hero .glow{position:absolute;width:500px;height:500px;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(108,124,255,0.06),transparent 70%);border-radius:50%;filter:blur(80px)}
+.hero-box{position:relative;z-index:2;max-width:800px}
+.hero-box h1{font-size:clamp(2.2rem,6vw,4rem);font-weight:900;letter-spacing:-0.03em;line-height:1.1;margin-bottom:16px}
+.hero-box h1 .gradient{background:linear-gradient(135deg,#e8e8ff,#8c9cff,#6c7cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-box .sub{font-size:clamp(.85rem,1.1vw,1rem);color:var(--tm);max-width:500px;margin:0 auto 28px;line-height:1.8}
+.hero-box .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-box .actions a{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;font-size:.82rem;font-weight:600;text-decoration:none;transition:all .3s}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 4px 20px rgba(108,124,255,.15)}
+.btn-p:hover{background:var(--ac2);transform:translateY(-3px)}
+.btn-s{background:rgba(255,255,255,0.02);color:var(--tm);border:1px solid var(--bd)}
+.btn-s:hover{color:var(--tx);border-color:var(--bl);transform:translateY(-2px)}
+.stats{display:flex;gap:20px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+.stat-item{text-align:center;padding:12px 20px;border-radius:var(--r);background:rgba(255,255,255,0.01);border:1px solid var(--bd);min-width:80px;transition:all .3s}
+.stat-item:hover{border-color:var(--bl);background:rgba(108,124,255,0.03);transform:translateY(-2px)}
+.stat-item .num{font-size:1.3rem;font-weight:700;color:var(--ac);font-family:var(--fm)}
+.stat-item .lbl{font-size:.6rem;color:var(--td);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+/* Sections - always visible by default */
+section{position:relative;max-width:1120px;margin:0 auto;padding:80px 24px;opacity:1!important;transform:none!important}
+.sectionHeader{text-align:center;margin-bottom:40px}
+.sectionTag{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(108,124,255,0.04);border:1px solid rgba(108,124,255,0.1);color:#6060a8;margin-bottom:18px}
+.sectionHeader h2{font-size:clamp(1.4rem,2.5vw,2rem);font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.sectionHeader h2 .hl{background:linear-gradient(135deg,#e8e8ff,var(--ac2),var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sectionHeader .sd{font-size:.85rem;color:var(--tm);max-width:500px;margin:0 auto;line-height:1.7}
+
+/* Layers */
+.layersBox{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card)}
+.layerRow{display:grid;grid-template-columns:180px 1fr 50px;transition:all .3s;cursor:pointer}
+.layerRow+.layerRow{border-top:1px solid var(--bd)}
+.layerRow:hover{background:rgba(108,124,255,0.025)}
+.layerLeft{padding:18px 20px;font-weight:600;display:flex;flex-direction:column;gap:4px;border-left:3px solid var(--ac);justify-content:center}
+.layerLeft .li{font-size:1rem;display:flex;align-items:center;gap:8px}
+.layerLeft .lp{font-size:.55rem;color:var(--td);margin-top:2px;margin-left:calc(1rem + 8px)}
+.layerCenter{padding:18px 20px;display:flex;flex-direction:column;gap:6px;justify-content:center}
+.lnt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ln{font-weight:600;font-size:.85rem}
+.lt{font-size:.55rem;padding:2px 10px;border-radius:12px;font-weight:500;font-family:var(--fm)}
+.ld{font-size:.75rem;color:var(--tm);line-height:1.5}
+.layerArrow{display:flex;align-items:center;justify-content:center;padding:18px;opacity:0.2;transition:all .3s}
+.layerRow:hover .layerArrow{opacity:0.5}
+
+/* Pipeline */
+.pCards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.pCard{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .3s}
+.pCard:hover{transform:translateY(-3px);border-color:var(--bl);box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.pCard.active{background:rgba(108,124,255,0.04);border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.pCard .ch{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.pCard .ch .cn{font-size:.65rem;font-weight:700;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--ch);border:1px solid var(--bd);flex-shrink:0;font-family:var(--fm);color:var(--td)}
+.pCard.active .ch .cn{background:rgba(108,124,255,0.1);border-color:var(--ac);color:var(--ac)}
+.pCard .ch .ct{font-size:.8rem;font-weight:600}
+.pCard .co{font-size:.55rem;color:var(--td);font-family:var(--fm);margin-bottom:3px}
+.pCard .cp{font-size:.7rem;color:var(--tm);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pDetail{background:var(--ch);border:1px solid var(--bd);border-radius:var(--r);padding:22px;min-height:80px}
+.pDetail .dt{font-size:1rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.pDetail .dd{font-size:.8rem;color:var(--tm);line-height:1.7}
+.pDetail .do{font-size:.6rem;color:var(--td);font-family:var(--fm);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)}
+.pControls{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.pControls button{padding:8px 20px;border-radius:8px;font-size:.72rem;font-weight:500;border:1px solid var(--bd);background:var(--card);color:var(--tm);cursor:pointer;transition:all .2s;font-family:var(--ff)}
+.pControls button:hover{border-color:var(--bl);color:var(--tx)}
+.pCtlP{background:var(--ac);color:#fff;border-color:var(--ac)}
+.pCtlP:hover{background:var(--ac2)}
+.pProgress{width:100%;height:3px;background:var(--ch);border-radius:2px;margin-top:12px;overflow:hidden}
+.pProgress .pb{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:2px;transition:width .5s ease;width:0%}
+
+/* Services */
+.sGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sCard{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px;transition:all .3s}
+.sCard:hover{transform:translateY(-3px);border-color:var(--bl);box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.sCard .st{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sCard .st .sn{font-size:.8rem;font-weight:600}
+.sCard .st .ss{font-size:.55rem;padding:2px 8px;border-radius:10px;background:rgba(64,208,128,0.08);color:var(--gr);font-weight:500;font-family:var(--fm)}
+.sCard .sp{font-size:.65rem;color:var(--td);font-family:var(--fm);margin-bottom:3px}
+.sCard .sd{font-size:.7rem;color:var(--tm);line-height:1.45}
+.sCard .sm{font-size:.55rem;color:var(--td);margin-top:6px}
+
+/* Principles */
+.pGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.priCard{border:1px solid var(--bd);border-radius:var(--r);padding:18px;transition:all .3s;background:var(--card)}
+.priCard:hover{transform:translateY(-3px);border-color:var(--bl)}
+.priCard .pt{font-size:.9rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.priCard .pd{font-size:.72rem;color:var(--tm);line-height:1.55}
+
+section[id]{scroll-margin-top:20px}
+
+@media(max-width:768px){
+.layerRow{grid-template-columns:1fr 30px}
+.layerLeft{padding:14px 16px}
+.layerCenter{padding:0 16px 14px}
+.pCards{grid-template-columns:1fr 1fr}
+.sGrid{grid-template-columns:1fr}
+.pGrid{grid-template-columns:1fr}
+.hero-box .actions{flex-direction:column;align-items:center}
+section{padding:60px 16px}
+}
+
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.contact-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px 18px;border:1px solid var(--bd);border-radius:var(--r);background:var(--card);text-decoration:none;transition:all .3s;cursor:pointer}
+.contact-card:hover{transform:translateY(-4px);border-color:var(--ac);box-shadow:0 8px 32px rgba(108,124,255,0.08)}
+.contact-card .cc-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(108,124,255,0.04);border:1px solid var(--bd);color:var(--tm);transition:all .3s}
+.contact-card:hover .cc-icon{background:rgba(108,124,255,0.08);border-color:var(--ac);color:var(--ac)}
+.contact-card .cc-name{font-size:.85rem;font-weight:600;color:var(--tx)}
+.contact-card .cc-handle{font-size:.7rem;color:var(--td);font-family:var(--fm);transition:color .3s}
+.contact-card:hover .cc-handle{color:var(--ac2)}</style>
+</head>
+<body>
+<canvas id="bg3dCanvas"></canvas>
+<div class="pageContainer">
+
+<div id="hero">
+  <div class="glow"></div>
+  <div class="hero-box">
+    <h1><span class="gradient">Agent OS</span><br>超级个体架构</h1>
+    <p class="sub">一个运行在 Windows 上的个人多 Agent 操作系统<br>Hermes 指挥官 + Agent 员工 + 九步管线 + 向量知识库</p>
+    <div class="actions">
+      <a class="btn-p" href="#layers">▶ 六层架构</a>
+      <a class="btn-s" href="#pipeline">▶ 执行管线</a>
+      <a class="btn-s" href="#services">▶ 服务拓扑</a>
+    <a href="https://www.douyin.com/user/MS4wLjABAAAA..." target="_blank" class="contact-card">
+      <div class="cc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.58 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.28 0 .55.04.81.1v-3.5a6.37 6.37 0 00-.81-.05A6.34 6.34 0 003.1 15.26a6.34 6.34 0 006.35 6.34 6.34 6.34 0 006.35-6.34V9.98a8.18 8.18 0 004.79 1.54v-3.49a4.83 4.83 0 01-3-1.34z"/></svg></div>
+      <div class="cc-name">抖音</div>
+      <div class="cc-handle">33693030021</div>
+    </a>
+    </div>
+    <div class="stats">
+      <div class="stat-item"><div class="num">7</div><div class="lbl">Services</div></div>
+      <div class="stat-item"><div class="num">7/7</div><div class="lbl">PM2 Online</div></div>
+      <div class="stat-item"><div class="num">16</div><div class="lbl">Endpoints</div></div>
+      <div class="stat-item"><div class="num">9</div><div class="lbl">Pipeline</div></div>
+    </div>
+  </div>
+</div>
+
+<section id="layers">
+  <div class="sectionHeader">
+    <div class="sectionTag">ARCHITECTURE</div>
+    <h2><span class="hl">六层架构系统</span></h2>
+    <p class="sd">从指挥官到工作流，每一层各司其职。</p>
+  </div>
+  <div class="layersBox">
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#6c7cff">
+    <div class="li">指挥官层</div>
+    <div class="lp">CLI/WebUI</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">指挥官层</span><span class="lt" style="background:rgba(108,124,255,0.08);color:#6c7cff">大脑</span></div>
+    <div class="ld">我（Hermes）— 拆解任务、选模型、派活、审核。核心决策中心。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c7cff" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#40d080">
+    <div class="li">执行层</div>
+    <div class="lp">delegate_task</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">执行层</span><span class="lt" style="background:rgba(64,208,128,0.08);color:#40d080">员工</span></div>
+    <div class="ld">Agent 员工 bpd（跨境电商）/ freelance（自由职业）。delegate_task 轻任务 / terminal+hermes 重任务。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#40d080" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#ff8040">
+    <div class="li">模型路由层</div>
+    <div class="lp">模型选择</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">模型路由层</span><span class="lt" style="background:rgba(255,128,64,0.08);color:#ff8040">路由</span></div>
+    <div class="ld">按任务类型分配最优模型。轻活走 delegate_task（快/省），重活/代码/分析走 terminal + 更强模型。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8040" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#ff5c8a">
+    <div class="li">调度层</div>
+    <div class="lp">:18888</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">调度层</span><span class="lt" style="background:rgba(255,92,138,0.08);color:#ff5c8a">调度</span></div>
+    <div class="ld">Framework Service :18888 + Pipeline。统一调度，权限/风控/任务状态管理。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5c8a" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#b088ff">
+    <div class="li">知识层</div>
+    <div class="lp">:6333</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">知识层</span><span class="lt" style="background:rgba(176,136,255,0.08);color:#b088ff">记忆</span></div>
+    <div class="ld">Qdrant 向量知识库 :6333。BGE 模型嵌入，语义搜索历史经验。8028维向量，AutoId + score。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b088ff" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#40b8d0">
+    <div class="li">进程层</div>
+    <div class="lp">PM2</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">进程层</span><span class="lt" style="background:rgba(64,184,208,0.08);color:#40b8d0">引擎</span></div>
+    <div class="ld">PM2 管理 7 个服务。Qdrant/OpenClaw/Framework/WebUI/CDP/n8n/Phoenix。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#40b8d0" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#ffd040">
+    <div class="li">可观测层</div>
+    <div class="lp">Langfuse</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">可观测层</span><span class="lt" style="background:rgba(255,208,64,0.08);color:#ffd040">监视</span></div>
+    <div class="ld">Langfuse LLM token 追踪。Hermes .env 已配 key，SDK 待装。</div>
+  </div>
+  <div class="layerArrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffd040" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+</div>
+<div class="layerRow">
+  <div class="layerLeft" style="border-left-color:#ff60c0">
+    <div class="li">工作流层</div>
+    <div class="lp">:5678</div>
+  </div>
+  <div class="layerCenter">
+    <div class="lnt"><span class="ln">工作流层</span><span class="lt" style="background:rgba(255,96,192,0.08);color:#ff60c0">自动化</span></div>
+    <div class="ld">n8n v2.22.6 可视化编排。知识入库通知 + 任务失败告警 workflow。</div>
+  </div>
+  
+</div></div>
+</section>
+
+<section id="pipeline">
+  <div class="sectionHeader">
+    <div class="sectionTag">PIPELINE</div>
+    <h2><span class="hl">九步执行管线</span></h2>
+    <p class="sd">从指令到结果的完整闭环。点击卡片查看详情。</p>
+  </div>
+  <div class="pCards">
+<div class="pCard" data-step="0">
+  <div class="ch"><div class="cn">1</div><div class="ct">指令接收</div></div>
+  <div class="co">Hermes</div>
+  <div class="cp">用户通过 CLI / WebUI :8648 / 飞书下达自然语言指令。Hermes 解析意图、抽取参数。...</div>
+</div>
+<div class="pCard" data-step="1">
+  <div class="ch"><div class="cn">2</div><div class="ct">任务分析</div></div>
+  <div class="co">Hermes</div>
+  <div class="cp">分析任务复杂度、领域归属。决定模型选择策略：delegate_task（轻量）vs terminal+更强模型（重型）。...</div>
+</div>
+<div class="pCard" data-step="2">
+  <div class="ch"><div class="cn">3</div><div class="ct">权限校验</div></div>
+  <div class="co">Framework</div>
+  <div class="cp">P0-P3 四级权限。P3 超管可执行所有，无权限直接 403。8 维风险矩阵评估。...</div>
+</div>
+<div class="pCard" data-step="3">
+  <div class="ch"><div class="cn">4</div><div class="ct">知识检索</div></div>
+  <div class="co">Qdrant</div>
+  <div class="cp">从 Qdrant 向量库语义检索历史经验。BGE 模型将查询转为向量，搜索 Top N 相关记录。...</div>
+</div>
+<div class="pCard" data-step="4">
+  <div class="ch"><div class="cn">5</div><div class="ct">Agent 派发</div></div>
+  <div class="co">Framework</div>
+  <div class="cp">根据操作类型自动选择 Agent（bpd/freelance）。读 memory.md 注入 context，派发执行。...</div>
+</div>
+<div class="pCard" data-step="5">
+  <div class="ch"><div class="cn">6</div><div class="ct">CDP 执行</div></div>
+  <div class="co">OpenClaw</div>
+  <div class="cp">Chrome DevTools Protocol WebSocket 控制浏览器：导航、填表、提取、提交。无 Playw...</div>
+</div>
+<div class="pCard" data-step="6">
+  <div class="ch"><div class="cn">7</div><div class="ct">审核评分</div></div>
+  <div class="co">Hermes</div>
+  <div class="cp">Hermes 审核结果并打分 (0-100)。通过则存储，失败则重试或回滚。...</div>
+</div>
+<div class="pCard" data-step="7">
+  <div class="ch"><div class="cn">8</div><div class="ct">知识沉淀</div></div>
+  <div class="co">Qdrant</div>
+  <div class="cp">执行经验和结果写入 Qdrant。含操作上下文、执行结果和评分。持续学习闭环。...</div>
+</div>
+<div class="pCard" data-step="8">
+  <div class="ch"><div class="cn">9</div><div class="ct">返回结果</div></div>
+  <div class="co">Hermes</div>
+  <div class="cp">所有步骤完成，结果返回用户。更新仪表盘统计和操作日志。一次 Agent 任务完整生命周期结束。...</div>
+</div></div>
+  <div class="pDetail" id="pDetail">
+    <div class="dt">点击卡片查看详情</div>
+    <div class="dd">点击上方任意卡片查看该步骤详情，或按自动播放流程。</div>
+  </div>
+  <div class="pProgress"><div class="pb" id="pBar"></div></div>
+  <div class="pControls">
+    <button id="playBtn">▶ 自动播放</button>
+    <button id="resetBtn">↺ 重置</button>
+  </div>
+</section>
+
+<section id="services">
+  <div class="sectionHeader">
+    <div class="sectionTag">TOPOLOGY</div>
+    <h2><span class="hl">服务拓扑</span></h2>
+    <p class="sd">7 个核心服务通过 PM2 统一管理。</p>
+  </div>
+  <div class="sGrid">
+<div class="sCard">
+  <div class="st"><span class="sn">Framework Service</span><span class="ss">UP</span></div>
+  <div class="sp">:18888</div>
+  <div class="sd">核心管线调度，16个端点。健康检查/执行/知识/任务/日志/CDP/Admin</div>
+  <div class="sm">4.7MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">Qdrant</span><span class="ss">UP</span></div>
+  <div class="sp">:6333</div>
+  <div class="sd">向量知识库，BGE嵌入。8028维向量，AutoId + score + hit_count</div>
+  <div class="sm">67MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">OpenClaw Gateway</span><span class="ss">UP</span></div>
+  <div class="sp">:18789</div>
+  <div class="sd">CDP 浏览器驱动。Hermes 依赖的浏览器自动化网关</div>
+  <div class="sm">340MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">CDP Chrome</span><span class="ss">UP</span></div>
+  <div class="sp">:9333</div>
+  <div class="sd">浏览器自动化实例。WebSocket 控制：导航/填表/提取/提交</div>
+  <div class="sm">150MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">Hermes WebUI</span><span class="ss">UP</span></div>
+  <div class="sp">:8648</div>
+  <div class="sd">Hermes Web 界面。用户与 Agent 系统交互的 GUI 入口</div>
+  <div class="sm">100MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">n8n</span><span class="ss">UP</span></div>
+  <div class="sp">:5678</div>
+  <div class="sd">工作流引擎。知识入库通知 + 任务失败告警（1个待激活）</div>
+  <div class="sm">145MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">Phoenix Watcher</span><span class="ss">UP</span></div>
+  <div class="sp">PM2</div>
+  <div class="sd">电路断路器+冷启动保护。PM2 管不到的进程守护</div>
+  <div class="sm">4.6MB</div>
+</div>
+<div class="sCard">
+  <div class="st"><span class="sn">Hermes Gateway</span><span class="ss">UP</span></div>
+  <div class="sp">PM2</div>
+  <div class="sd">Hermes API 网关。CLI 与 Agent 系统的桥梁</div>
+  <div class="sm">4.9MB</div>
+</div></div>
+</section>
+
+<section id="principles">
+  <div class="sectionHeader">
+    <div class="sectionTag">DESIGN</div>
+    <h2><span class="hl">设计原则</span></h2>
+    <p class="sd">一个务实的个人 Agent OS。</p>
+  </div>
+  <div class="pGrid"><div class="priCard"><div class="pt">🎯 不堆叠</div><div class="pd">够用就行，不追求企业级。</div></div><div class="priCard"><div class="pt">📦 渐进复杂</div><div class="pd">先跑通再优化。</div></div><div class="priCard"><div class="pt">💯 不自虐</div><div class="pd">审核归 Hermes。</div></div><div class="priCard"><div class="pt">🔄 知识闭环</div><div class="pd">检索→执行→沉淀。</div></div><div class="priCard"><div class="pt">🛡️ 四层安全</div><div class="pd">P0-P3 + 8维风控 + 审核 + 开关器。</div></div><div class="priCard"><div class="pt">⚙️ 自动运维</div><div class="pd">PM2 + Phoenix + n8n。</div></div></div>
+</section>
+
+<section id="contact">
+  <div class="sectionHeader">
+    <div class="sectionTag">CONTACT</div>
+    <h2><span class="hl">联系方式</span></h2>
+    <p class="sd">欢迎交流，一起探讨 Agent OS。</p>
+  </div>
+  <div class="contact-grid">
+    <a href="https://github.com/MFeng99" target="_blank" class="contact-card">
+      <div class="cc-icon"><svg width="28" height="28" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
+      <div class="cc-name">GitHub</div>
+      <div class="cc-handle">MFeng99</div>
+    </a>
+    <a href="mailto:maofeng1243@gmail.com" class="contact-card">
+      <div class="cc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+      <div class="cc-name">Google 邮箱</div>
+      <div class="cc-handle">maofeng1243@gmail.com</div>
+    </a>
+    <a href="https://x.com/MFengAgent" target="_blank" class="contact-card">
+      <div class="cc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
+      <div class="cc-name">X / Twitter</div>
+      <div class="cc-handle">@MFengAgent</div>
+    </a>
+    <a href="https://www.douyin.com/user/MS4wLjABAAAA..." target="_blank" class="contact-card">
+      <div class="cc-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.58 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.28 0 .55.04.81.1v-3.5a6.37 6.37 0 00-.81-.05A6.34 6.34 0 003.1 15.26a6.34 6.34 0 006.35 6.34 6.34 6.34 0 006.35-6.34V9.98a8.18 8.18 0 004.79 1.54v-3.49a4.83 4.83 0 01-3-1.34z"/></svg></div>
+      <div class="cc-name">抖音</div>
+      <div class="cc-handle">33693030021</div>
+    </a>
+  </div>
+</section>
+
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// === 3D Canvas (safe) ===
+try {
+  var cv = document.getElementById("bg3dCanvas");
+  var cx = cv.getContext("2d");
+  var W, H;
+  function resize() { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+  resize(); window.addEventListener("resize", resize);
+  var COLS = ["#6c7cff","#40d080","#ff8040","#ff5c8a","#b088ff","#40b8d0","#ffd040","#ff60c0"];
+  var NODES = [];
+  for (var i = 0; i < 8; i++) {
+    var a = (i / 8) * Math.PI * 2;
+    NODES.push({ x: Math.cos(a)*3.5, y: (i-3.5)*0.7, z: Math.sin(a)*3.5, c: COLS[i], angle: a, idx: i });
+  }
+  var PARTICLES = [];
+  for (var i = 0; i < 200; i++) PARTICLES.push({ x: (Math.random()-0.5)*28, y: (Math.random()-0.5)*18, z: (Math.random()-0.5)*18-3, s: Math.random()*1.5+0.5 });
+  var FLOW = [];
+  for (var i = 0; i < 30; i++) FLOW.push({ si: Math.floor(Math.random()*8), ti: Math.floor(Math.random()*8), t: Math.random(), sp: 0.003+Math.random()*0.005 });
+  function proj(x,y,z,rx,ry) {
+    var cx=Math.cos(rx),sx=Math.sin(rx),cy=Math.cos(ry),sy=Math.sin(ry);
+    var y1=y*cx-z*sx, z1=y*sx+z*cx, x1=x*cy+z1*sy; z1=-x*sy+z1*cy;
+    var sc=500/(500+z1*80);
+    return { x: x1*sc*110+W/2, y: y1*sc*90+H/2, sc: sc };
+  }
+  var mx=0, my=0;
+  document.addEventListener("mousemove", function(e) { mx=(e.clientX/W-0.5)*2; my=(e.clientY/H-0.5)*2; });
+  var t=0;
+  function render3d() {
+    requestAnimationFrame(render3d);
+    t+=0.007;
+    cx.clearRect(0,0,W,H);
+    var rx=my*0.3+Math.sin(t*0.04)*0.05, ry=mx*0.5+t*0.025;
+    cx.lineWidth=0.5;
+    for (var i=0;i<NODES.length;i++) for (var j=i+1;j<NODES.length;j++) {
+      var d=Math.sqrt(Math.pow(NODES[i].x-NODES[j].x,2)+Math.pow(NODES[i].y-NODES[j].y,2)+Math.pow(NODES[i].z-NODES[j].z,2));
+      if (d<6) {
+        var p1=proj(NODES[i].x,NODES[i].y,NODES[i].z,rx,ry), p2=proj(NODES[j].x,NODES[j].y,NODES[j].z,rx,ry);
+        cx.beginPath(); cx.moveTo(p1.x,p1.y); cx.quadraticCurveTo((p1.x+p2.x)/2,(p1.y+p2.y)/2-20,p2.x,p2.y);
+        cx.strokeStyle="rgba(108,124,255,0.03)"; cx.stroke();
+      }
+    }
+    for (var i=0;i<NODES.length;i++) { var a=NODES[i].angle+t*0.08; NODES[i].x=Math.cos(a+t*0.02)*3.5; NODES[i].z=Math.sin(a+t*0.02)*3.5; NODES[i].y=(i-3.5)*0.7+Math.sin(t*0.15+i*0.3)*0.2; }
+    var sorted=NODES.slice().sort(function(a,b){ return proj(a.x,a.y,a.z,rx,ry).sc-proj(b.x,b.y,b.z,rx,ry).sc; });
+    for (var i=0;i<sorted.length;i++) {
+      var n=sorted[i],p=proj(n.x,n.y,n.z,rx,ry), sz=5*p.sc*(0.8+Math.sin(t*1.2+n.idx*0.8)*0.15+0.7);
+      var g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz*4);
+      g.addColorStop(0,n.c+"50"); g.addColorStop(0.3,n.c+"15"); g.addColorStop(1,n.c+"00");
+      cx.fillStyle=g; cx.beginPath(); cx.arc(p.x,p.y,sz*4,0,Math.PI*2); cx.fill();
+      cx.fillStyle=n.c; cx.shadowColor=n.c; cx.shadowBlur=15;
+      cx.beginPath(); cx.arc(p.x,p.y,sz,0,Math.PI*2); cx.fill();
+      cx.shadowBlur=0;
+      cx.fillStyle="rgba(200,200,255,0.25)";
+      cx.font=Math.round(13*p.sc)+"px system-ui";
+      cx.textAlign="center";
+      cx.fillText(["指挥官","执行层","模型","调度层","知识层","进程","可观测","工作流"][n.idx],p.x,p.y+sz+14*p.sc);
+    }
+    for (var i=0;i<FLOW.length;i++) {
+      var f=FLOW[i]; f.t+=f.sp;
+      if (f.t>1) { f.t=0; f.si=Math.floor(Math.random()*8); f.ti=Math.floor(Math.random()*8); }
+      var n1=NODES[f.si], n2=NODES[f.ti];
+      if (n1&&n2) {
+        var tt=f.t,u=1-tt, mxx=(n1.x+n2.x)/2, myy=(n1.y+n2.y)/2+1, mzz=(n1.z+n2.z)/2;
+        var fx=u*u*n1.x+2*u*tt*mxx+tt*tt*n2.x, fy=u*u*n1.y+2*u*tt*myy+tt*tt*n2.y, fz=u*u*n1.z+2*u*tt*mzz+tt*tt*n2.z;
+        var fp=proj(fx,fy,fz,rx,ry), fa=Math.sin(tt*Math.PI)*0.5;
+        cx.fillStyle="rgba(140,156,255,"+fa+")"; cx.shadowColor="rgba(108,124,255,0.3)"; cx.shadowBlur=6;
+        cx.beginPath(); cx.arc(fp.x,fp.y,1.8*fp.sc,0,Math.PI*2); cx.fill(); cx.shadowBlur=0;
+      }
+    }
+    for (var i=0;i<PARTICLES.length;i++) {
+      var p=PARTICLES[i]; p.y-=0.002;
+      if (p.y<-9) p.y=9;
+      var pp=proj(p.x,p.y,p.z,rx,ry);
+      cx.fillStyle="rgba(108,124,255,"+(Math.min(1,pp.sc*0.5)*0.2)+")";
+      cx.beginPath(); cx.arc(pp.x,pp.y,p.s*pp.sc*0.4,0,Math.PI*2); cx.fill();
+    }
+  }
+  render3d();
+} catch(e) { console.warn("3D canvas skipped:", e); }
+
+// === Pipeline Interactivity ===
+var pSteps = [{"id": 1, "icon": "🧠", "title": "指令接收", "desc": "用户通过 CLI / WebUI :8648 / 飞书下达自然语言指令。Hermes 解析意图、抽取参数。", "owner": "Hermes", "color": "#6c7cff"}, {"id": 2, "icon": "🔍", "title": "任务分析", "desc": "分析任务复杂度、领域归属。决定模型选择策略：delegate_task（轻量）vs terminal+更强模型（重型）。", "owner": "Hermes", "color": "#6c7cff"}, {"id": 3, "icon": "🔑", "title": "权限校验", "desc": "P0-P3 四级权限。P3 超管可执行所有，无权限直接 403。8 维风险矩阵评估。", "owner": "Framework", "color": "#ff5c8a"}, {"id": 4, "icon": "📚", "title": "知识检索", "desc": "从 Qdrant 向量库语义检索历史经验。BGE 模型将查询转为向量，搜索 Top N 相关记录。", "owner": "Qdrant", "color": "#b088ff"}, {"id": 5, "icon": "🔄", "title": "Agent 派发", "desc": "根据操作类型自动选择 Agent（bpd/freelance）。读 memory.md 注入 context，派发执行。", "owner": "Framework", "color": "#ff5c8a"}, {"id": 6, "icon": "⚙️", "title": "CDP 执行", "desc": "Chrome DevTools Protocol WebSocket 控制浏览器：导航、填表、提取、提交。无 Playwright 中间层。", "owner": "OpenClaw", "color": "#40d080"}, {"id": 7, "icon": "🔍", "title": "审核评分", "desc": "Hermes 审核结果并打分 (0-100)。通过则存储，失败则重试或回滚。", "owner": "Hermes", "color": "#6c7cff"}, {"id": 8, "icon": "💾", "title": "知识沉淀", "desc": "执行经验和结果写入 Qdrant。含操作上下文、执行结果和评分。持续学习闭环。", "owner": "Qdrant", "color": "#b088ff"}, {"id": 9, "icon": "✅", "title": "返回结果", "desc": "所有步骤完成，结果返回用户。更新仪表盘统计和操作日志。一次 Agent 任务完整生命周期结束。", "owner": "Hermes", "color": "#6c7cff"}];
+
+var pCards = document.querySelectorAll(".pCard");
+var pDetail = document.getElementById("pDetail");
+var pBar = document.getElementById("pBar");
+var pPlay = document.getElementById("playBtn");
+var pReset = document.getElementById("resetBtn");
+var pCur = -1, pPlaying = false, pTimer = null;
+
+function showStep(idx) {
+  pCards.forEach(function(c) { c.classList.remove("active"); });
+  if (idx < 0 || idx >= pSteps.length) {
+    pDetail.innerHTML = '<div class="dt">点击卡片查看详情</div><div class="dd">点击上方任意卡片查看该步骤详情，或按自动播放流程。</div>';
+    pBar.style.width = "0%"; pCur = -1; return;
+  }
+  pCards[idx].classList.add("active");
+  var s = pSteps[idx];
+  pDetail.innerHTML = '<div class="dt">'+s.icon+' '+s.title+'</div><div class="dd">'+s.desc+'</div><div class="do">'+s.owner+'</div>';
+  pBar.style.width = ((idx+1)/pSteps.length*100)+"%";
+  pCur = idx;
+}
+
+pCards.forEach(function(el) {
+  el.addEventListener("click", function() {
+    var i = parseInt(this.dataset.step);
+    if (pPlaying) { clearInterval(pTimer); pPlaying=false; pPlay.innerHTML="▶ 自动播放"; }
+    if (pCur===i) { showStep(-1); return; }
+    showStep(i);
+  });
+});
+
+pPlay.addEventListener("click", function() {
+  if (pPlaying) { clearInterval(pTimer); pPlaying=false; pPlay.innerHTML="▶ 自动播放"; return; }
+  pPlaying=true; pPlay.innerHTML="⏸ 暂停";
+  var i=-1;
+  function next() { i++; if(i>=pSteps.length){ clearInterval(pTimer); pPlaying=false; pPlay.innerHTML="▶ 自动播放"; showStep(-1); return; } showStep(i); }
+  next(); pTimer=setInterval(next, 2500);
+});
+
+pReset.addEventListener("click", function() {
+  if(pPlaying){ clearInterval(pTimer); pPlaying=false; pPlay.innerHTML="▶ 自动播放"; }
+  showStep(-1);
+});
+
+// === Scroll reveal ===
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if(e.isIntersecting) { e.target.style.opacity="1"; e.target.style.transform="none"; } });
+}, { threshold: 0.05 });
+document.querySelectorAll("section").forEach(function(el) { observer.observe(el); });
+
+// === Smooth scroll ===
+document.querySelectorAll("a[href^='#']").forEach(function(a) {
+  a.addEventListener("click", function(e) {
+    e.preventDefault();
+    var t = document.querySelector(this.getAttribute("href"));
+    if(t) t.scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+});
+
+console.log("Agent OS loaded.");
+})();
+</script>
+</body>
+</html>
